@@ -91,6 +91,7 @@ Function Add-SyncthingFolder
                 $FolderId = Split-Path -Leaf $Path
                 $FolderId = (Get-Culture).textinfo.totitlecase($FolderId.tolower())
                 $FolderId = $FolderId.Replace(" ","_")
+                Write-Verbose "FolderID will be $FolderId"
             }
 
         if(!($Config))
@@ -98,8 +99,6 @@ Function Add-SyncthingFolder
                 $Config = Get-SyncthingConfig -Computer $Computer -Port $Port
             }
         
-        $OwnDeviceID = Get-SyncthingDeviceID
-
         $Folder = New-Object -TypeName psobject
         $Folder | Add-Member -MemberType NoteProperty -Name rescanIntervalS -Value 60
         $Folder | Add-Member -MemberType NoteProperty -Name order -Value "random"
@@ -114,8 +113,9 @@ Function Add-SyncthingFolder
         $Folder | Add-Member -MemberType NoteProperty -Name id -Value $FolderId
         $Folder | Add-Member -MemberType NoteProperty -Name path -Value $Path
 
+        Write-Verbose "Adding folder to config"
         $Config.folders += $Folder
-        Set-SyncthingConfig -Computer -$Computer -Port $Port -Config $Config
+        Set-SyncthingConfig -Computer $Computer -Port $Port -Config $Config
     }
 
 Function Get-SyncthingAPIkey
@@ -150,6 +150,7 @@ Function Get-SyncthingAPIkey
 
         $Config = Get-SyncthingConfig -Computer $Computer -Port $Port
         $ApiKey = $Config.gui.apikey
+        Write-Verbose "APIkey is $ApiKey"
         return $ApiKey
     }
 
@@ -184,6 +185,7 @@ Function Get-SyncthingConfig
             )
 
         $Url = "http://$Computer"+":"+"$Port/rest/system/config"
+        Write-Verbose "Getting config from $url"
         $Config = Invoke-RestMethod -Uri $Url -Method Get
         return $Config
     }
@@ -480,6 +482,11 @@ Function Install-Syncthing
             [String]$Path="C:\",
             [ValidateSet($true,$false)][string]$RunAtStartup=$false  
             )
+        if(!(Test-Path $Path))
+            {
+                Write-Verbose "Creating $Path"
+                New-Item -ItemType Directory -Path $Path -Force
+            }
         Write-Verbose "Getting latest release"
         $htmlsyncthing = Invoke-WebRequest "https://github.com/syncthing/syncthing/releases" -DisableKeepAlive
         $syncthingzipurl = "https://github.com" + ($htmlsyncthing.Links.href | Where-Object {$_ -like "*windows-amd64*"} | select -First 1)
@@ -562,12 +569,13 @@ Function Set-SyncthingConfig
             (
             [String]$Computer="localhost",
             [String]$Port="8384",
-            [Parameter(Mandatory=$true)][Parameter(ValueFromPipeline=$true)]$Config
+                    $Config
             )
 
         $Url = "http://$Computer"+":"+"$Port/rest/system/config"
         $ApiKey = Get-SyncthingAPIkey -Computer $Computer -Port $Port
         $ConfigJson = $Config | ConvertTo-Json -Compress -Depth 6
+        Write-Verbose "Posting Config to $Url"
         Invoke-RestMethod -Uri $Url -Method Post -Body $ConfigJson -Headers @{"X-API-Key" = $ApiKey} -ContentType application/json
     }
 
