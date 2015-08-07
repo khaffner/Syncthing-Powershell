@@ -45,7 +45,7 @@
         $Device | Add-Member -MemberType NoteProperty -Name name -Value $Name
 
         $Config.devices += $Device
-        Set-SyncthingConfig -Computer -$Computer -Port $Port -Config $Config
+        Set-SyncthingConfig -Computer $Computer -Port $Port -Config $Config
     }
 
 Function Add-SyncthingFolder
