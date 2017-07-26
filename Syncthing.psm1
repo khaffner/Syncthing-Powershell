@@ -1,4 +1,5 @@
-﻿Function Add-SyncthingDevice
+#Test
+Function Add-SyncthingDevice
     {
         <#
         .SYNOPSIS
